@@ -121,5 +121,41 @@ def smooth_ts(ts, window):
     return ts_smooth
 
 
+# Runnning correlation between time series
+def run_corr(arr1, arr2, window_size):
+    """Running correlation between 2 1D arrays for given window size
+    Inputs:
+        arr1: 1D array
+        arr2: 1D array of same size as arr1
+        window: size of the of the window for calculating running correlation
+    """
+    
+    # Input error handling
+    a1 = arr1.shape
+    a2 = arr2.shape
+    if(len(a1) > 1):
+        raise ValueError("Expected only 1D arrays for arr1")
+    if(len(a2) > 1):
+        raise ValueError("Expected only 1D arrays for arr2")
+    a1 = len(arr1)
+    a2 = len(arr2)
+    if(a1 != a2):
+        raise ValueError("Array size mismatch. Pass similarly sized arrays")
+    
+    # Calculate running correlation
+    corr_size = a1 - window_size + 1
+    run_corr_arr = np.empty(corr_size, np.float32)
+    
+    i = 0
+    while(i+window_size-1 < a1):
+        i_start = i
+        i_end = i+window_size-1
+        corr = np.corrcoef(arr1[i_start:i_end], arr2[i_start:i_end])[0][1]
+        run_corr_arr[i] = corr
+        i+=1
+        
+    return run_corr_arr
+    
+
 if(__name__ == "__main__"):
     print "Import module and run"
