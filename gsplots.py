@@ -9,9 +9,10 @@
 
 # Import required libraries
 from mpl_toolkits.basemap import Basemap
+from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
-
+from netCDF4 import Dataset
 
 # Private method for getting E or W labels for longitudes in -180 to 180 range
 def __get_EW__(num):
@@ -150,6 +151,81 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     ax.set_xticklabels(tck_lb, fontsize = 7)
 
     return CS
+
+
+# Geospatial masking function
+def lsmask(data, lat, lon, mask, keep_mask = False):
+    """Function to mask data using landsea_mask.nc 
+    1x1 resolution file from NCEP
+    Inputs: 
+        data - data to be masked. n dimensional with lat and lon being last 2 dimension
+        lat - latitudes associated with the data
+        lon - longitudes associated with the data    
+        mask - mask to be applied (can be array)- 
+        0=ocean, 1=land, 2=lake, 3=small island, 4=ice shelf 
+        eg. if mask = 0, ocean will be masked out
+        Refer to (https://www.ncl.ucar.edu/Document/Functions/Shea_util/landsea_mask.shtml)
+        keep_mask [Optional] - Whether old mask has to be retained on top of new landsea mask
+        
+    Outputs:
+        data - masked array of same dimensionality as input
+    """
+    
+    #  Preload the maskfile
+    # NOTE: landsea mask has range between -90 to 90 for lat
+    # and 0 to 360 for lon
+    min_lat = np.min(lat)
+    max_lat = np.max(lat)
+    min_lon = np.min(lon)    
+    max_lon = np.max(lon)
+    
+    if(min_lon < 0):
+        raise ValueError("lon: Longitude not in range 0:360!")
+    
+    f = Dataset("data/landsea.nc", "r")
+    lsm = f.variables["LSMASK"]
+    lat_ls = f.variables["lat"][:]
+    lon_ls = f.variables["lon"][:]
+    
+    lat_filt = np.logical_and(lat_ls <= max_lat, lat_ls >= min_lat)
+    lon_filt = np.logical_and(lon_ls <= max_lon, lon_ls >= min_lon)
+    
+    # Sometimes there is an issue with simultaneously subsetting both 
+    # lat and lon. CHECK
+    lsm = lsm[lat_filt,:]    
+    lsm = lsm[:,lon_filt]
+    
+    lat_in = lat[lat_filt]
+    lon_in = lat[lon_filt]
+    
+    f.close()
+    
+    # Interpolate using the basemap.interp function
+    lsm_interp = interp(lsm, xin = lon_in, yin = lat_in, 
+                                xout = lon, yout = lat, order = 3)
+    
+    # After interpolation, mask the dataset
+    shp = data.shape
+    
+    if(isinstance(mask, int)):
+        msk = ~(lsm_interp == mask)
+    else:
+        msk = np.empty(lsm.shape, np.bool)
+        msk[:] = False
+        for ms in mask:
+            msk = np.logical_or(msk, lsm_interp == ms)
+        msk = ~msk
+        
+    msk3d = np.broadcast_to(msk, shp)
+    
+    # Mask the input dataset
+    if(keep_mask):
+        if(isinstance(data, np.ma.masked_array)):
+            msk3d = np.logical_or(msk3d, data.mask)
+        else:
+            raise ValueError("keep_mask: Previous Mask not found")
+    return np.ma.masked_array(data, msk3d)
+
 
 if(__name__ == "__main__"):
     print "Import module and run"
