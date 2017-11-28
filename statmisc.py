@@ -155,6 +155,25 @@ def run_corr(arr1, arr2, window_size):
         i+=1
         
     return run_corr_arr
+
+def mann_kendall(data):
+    
+    """Calculate the Mann Kendall test for Trend in data
+    Inputs:
+        data - A one dimensional dataset ranked in the order it was collected (A time series)
+    Outputs:
+        tau_ - Kendall test statistic (Close to 1/-1, strong trend, 0 no trend)
+        p_ - p-value associated with the test statistic
+    """
+    
+    if len(data.shape) > 1:
+        raise ValueError("Only 1D arrays expected %d array was passed" %len(data.shape))
+    
+    x = np.arange(len(data))
+    
+    tau_, p_ = st.kendalltau(x, data, nan_policy="raise")
+    
+    return tau_, p_
     
 
 if(__name__ == "__main__"):
