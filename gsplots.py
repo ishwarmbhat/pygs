@@ -13,6 +13,7 @@ from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
 from netCDF4 import Dataset
+import os
 
 # Private method for getting E or W labels for longitudes in -180 to 180 range
 def __get_EW__(num):
@@ -80,12 +81,19 @@ def plot_contour_map(contour_data, lats, lons,
         m.drawlsmask()        
     # Data for the contour map    
     clevs = np.arange(minlev,maxlev+levspace,levspace)
+    
+    # Private method delta to subtract a small number to account for error in floating point rounding off
+    _delta_ = levspace/1000 * 4
         
     x,y = np.meshgrid(lons, lats)
     cmap = ncm.cmap(cmap)
     
-    contour_data[np.logical_and(~contour_data.mask, contour_data < min(clevs))] = min(clevs)
-    contour_data[np.logical_and(~contour_data.mask,contour_data > max(clevs))] = max(clevs)
+    if(np.ma.is_masked(contour_data)):
+        contour_data[np.logical_and(~contour_data.mask, contour_data < min(clevs))] = min(clevs) + _delta_
+        contour_data[np.logical_and(~contour_data.mask,contour_data > max(clevs))] = max(clevs) - _delta_
+    else:
+        contour_data[contour_data < min(clevs)] = min(clevs) + _delta_
+        contour_data[contour_data > max(clevs)] = max(clevs) - _delta_
 
     # contour_data = contour_data[:,lon_pos]
     cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, origin = 'lower')
@@ -182,7 +190,9 @@ def lsmask(data, lat, lon, mask, keep_mask = False):
     if(min_lon < 0):
         raise ValueError("lon: Longitude not in range 0:360!")
     
-    f = Dataset("data/landsea.nc", "r")
+    mloc = os.path.join(os.path.dirname(__file__), 'data/landsea.nc')
+    
+    f = Dataset(mloc, "r")
     lsm = f.variables["LSMASK"]
     lat_ls = f.variables["lat"][:]
     lon_ls = f.variables["lon"][:]
@@ -192,17 +202,20 @@ def lsmask(data, lat, lon, mask, keep_mask = False):
     
     # Sometimes there is an issue with simultaneously subsetting both 
     # lat and lon. CHECK
-    lsm = lsm[lat_filt,:]    
-    lsm = lsm[:,lon_filt]
+    # lsm = lsm[lat_filt,:]    
+    lsm = lsm[lat_filt,lon_filt]
     
-    lat_in = lat[lat_filt]
-    lon_in = lat[lon_filt]
+    lat_in = lat_ls[lat_filt]
+    lon_in = lon_ls[lon_filt]
+    
+    lon_out, lat_out = np.meshgrid(lon, lat)
+    
     
     f.close()
     
     # Interpolate using the basemap.interp function
     lsm_interp = interp(lsm, xin = lon_in, yin = lat_in, 
-                                xout = lon, yout = lat, order = 3)
+                                xout = lon_out, yout = lat_out, order = 3)
     
     # After interpolation, mask the dataset
     shp = data.shape
