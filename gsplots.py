@@ -66,7 +66,7 @@ def plot_contour_map(contour_data, lats, lons,
  
     if (len(lat_lim) != 2) or (len(lon_lim)!=2):
         raise ValueError("Only 2 values expected for axis limits")
-    
+        
     m = Basemap(projection = 'cyl', llcrnrlat = lat_lim[0], \
         urcrnrlat = lat_lim[1], \
         area_thresh = 10000,
@@ -86,7 +86,11 @@ def plot_contour_map(contour_data, lats, lons,
     _delta_ = levspace/1000 * 4
         
     x,y = np.meshgrid(lons, lats)
-    cmap = ncm.cmap(cmap)
+    
+    if(isinstance(cmap, str)):
+        cmap = ncm.cmap(cmap)
+    else:
+        cmap = cmap
     
     if(np.ma.is_masked(contour_data)):
         contour_data[np.logical_and(~contour_data.mask, contour_data < min(clevs))] = min(clevs) + _delta_
