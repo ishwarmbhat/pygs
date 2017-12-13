@@ -74,7 +74,13 @@ def autocorr(a,v):
 
     """ Performs autocorrelation using the np.correlate
     in 'full' mode. Normalization has been added for 
-    keeping the values between -1,1"""
+    keeping the values between -1,1
+    Inputs:
+        a: Vector a; a 1D array only
+        v: Vector b: a 1D array to be autocorrelated with a
+    Outputs:
+        corr: 1D array of lead/lag autocorrelations starting with -n/2 (lag v), 
+        n/2 (lead v)"""
 
     import numpy as np
 
