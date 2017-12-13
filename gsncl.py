@@ -100,7 +100,8 @@ def wgt_area_avg(data, lat_wgt, lon_wgt):
     lat_wgt: weights over latitude of area (usually cos(lat * pi/180))
     lon_wgt: weights over longitude of area (usually 1)
     
-    Returns, Numpy array with 2 less dimensions"""
+    Returns, Numpy array with 2 less dimensions. 
+    Masking features are preserved for consistence"""
 
     # Get data shape
     shp = data.shape
@@ -124,7 +125,10 @@ def wgt_area_avg(data, lat_wgt, lon_wgt):
     ds = data[0]
     for el in shp[1:ndims-2]:
         ds = ds[0]
-    msk = ds.mask
+    if(isinstance(ds, np.ma.masked_array)):
+        msk = ds.mask
+    else:
+        msk = False
 
     wy = np.ma.masked_array(wy, msk)
     wx = np.ma.masked_array(wx, msk)
@@ -133,7 +137,10 @@ def wgt_area_avg(data, lat_wgt, lon_wgt):
     sm_wgt = data_wgt.sum(axis = (ndims - 2, ndims - 1))
     sm_wgt = sm_wgt/np.sum(wy * wx)
 
-    return sm_wgt
+    if(isinstance(ds, np.ma.masked_array)):
+        return sm_wgt
+    else:
+        return np.array(sm_wgt)
 
 # Weighted area sum for geospatial computations
 def wgt_area_sum(data, lat_wgt, lon_wgt):
@@ -143,7 +150,9 @@ def wgt_area_sum(data, lat_wgt, lon_wgt):
     lat_wgt: weights over latitude of area (usually cos(lat * pi/180))
     lon_wgt: weights over longitude of area (usually 1)
     
-    Returns, Numpy array with 2 less dimensions"""
+    Returns, Numpy array with 2 less dimensions (Masked array. 
+    Mask is False if no mask was supplied with the input data. 
+    Else mask is derived from the input data)"""
 
     # Get data shape
     shp = data.shape
@@ -167,7 +176,10 @@ def wgt_area_sum(data, lat_wgt, lon_wgt):
     ds = data[0]
     for el in shp[1:ndims-2]:
         ds = ds[0]
-    msk = ds.mask
+    if(isinstance(ds, np.ma.masked_array)):
+        msk = ds.mask
+    else:
+        msk = False
 
     wy = np.ma.masked_array(wy, msk)
     wx = np.ma.masked_array(wx, msk)
