@@ -260,5 +260,59 @@ def lat_avg(data, lat_wgt):
     return (data * lat_wgt_re).mean(axis = -2)
 
 
+def subset_latlon(data, lat, lon, lat_lim, lon_lim):
+    """Latitude longitude subsetting for netCDF4 data similar to the coordinate
+    subscripting avialable in NCL
+    Inputs:
+        data - geospatial data. Last 2 dimensions assumed to be lat and lon
+        lat - latitude coordinate array (1D)
+        lon - longitude coordinate array (1D)
+        lat_lim - limits for latitude; a 2 element list
+        lon_lim - limits for longitude; a 2 element list
+    Outputs:
+        subsetted data, lat and lon""" 
+    
+    from netCDF4 import Variable
+    
+    # check for last 2 dimensions    
+    shp = data.shape
+
+    # Check for data types
+    # ~ (latnd and lonnd) is the same as checking for (~latnd and ~lonnd)
+    if( not (isinstance(lat, np.ndarray) or isinstance(lon, np.ndarray))):
+        raise ValueError("Latitude or Longitude coordinates not a numpy array")
+    if(not (isinstance(data, np.ndarray) or isinstance(data, Variable))):
+        raise ValueError("Data not a numpy array or masked array")
+    
+    if(len(lat.shape) > 1):
+        raise ValueError("Latitude coordinates must be 1D")
+    if(len(lon.shape) > 1):
+        raise ValueError("Longitude coordinates must be 1D")
+    if(shp[-2] != len(lat)):
+        raise ValueError("Dimension mismatch along axis: Latitude")
+    elif(shp[-1] != len(lon)):
+        raise ValueError("Dimension mismatch along axis: Longitude")
+    
+    if((len(lat_lim) != 2) or (len(lon_lim) != 2)):
+        raise ValueError("Latitude or longitude bounds are not 2 element list/array")
+    
+    # Lat and longitude filtering
+    lat_filt = np.logical_and(lat <= lat_lim[1], lat >= lat_lim[0])
+    lon_filt = np.logical_and(lon <= lon_lim[1], lon >= lon_lim[0])
+    
+    if(np.sum(lat_filt) == 0) :
+        raise ValueError("Coordinate out of bounds: Latitude")
+    if(np.sum(lon_filt) == 0) :
+        raise ValueError("Coordinate out of bounds: Longitude")
+    
+    # First filtering along lat and then along lon using 
+    data_sub = np.take(data,np.where(lat_filt)[0],axis = -2)
+    data_sub = np.take(data_sub, np.where(lon_filt)[0], axis = -1)
+    
+    lat_sub = lat[lat_filt]
+    lon_sub = lon[lon_filt]
+    
+    return data_sub, lat_sub, lon_sub
+
 if(__name__ == "__main__"):
     print("Import Module and run!")
