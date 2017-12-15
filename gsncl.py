@@ -284,8 +284,6 @@ def subset_latlon(data, lat, lon, lat_lim, lon_lim):
     Outputs:
         subsetted data, lat and lon""" 
     
-    print "Changed"
-    
     from netCDF4 import Variable
     
     # check for last 2 dimensions    
