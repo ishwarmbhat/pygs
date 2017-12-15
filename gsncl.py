@@ -284,6 +284,8 @@ def subset_latlon(data, lat, lon, lat_lim, lon_lim):
     Outputs:
         subsetted data, lat and lon""" 
     
+    print "Changed"
+    
     from netCDF4 import Variable
     
     # check for last 2 dimensions    
@@ -317,9 +319,11 @@ def subset_latlon(data, lat, lon, lat_lim, lon_lim):
     if(np.sum(lon_filt) == 0) :
         raise ValueError("Coordinate out of bounds: Longitude")
     
-    # First filtering along lat and then along lon using 
-    data_sub = np.take(data,np.where(lat_filt)[0],axis = -2)
-    data_sub = np.take(data_sub, np.where(lon_filt)[0], axis = -1)
+    # First filtering along lat and then along lon using
+    # np.take slower and more resource heavy
+    # data_sub = np.take(data,np.where(lat_filt)[0],axis = -2)
+    # data_sub = np.take(data_sub, np.where(lon_filt)[0], axis = -1)
+    data_sub = data[...,np.where(lat_filt)[0],np.where(lon_filt)[0]]
     
     lat_sub = lat[lat_filt]
     lon_sub = lon[lon_filt]
