@@ -6,8 +6,7 @@
 # ========================================================================
 # ========================================================================
 
-
-# ==================== Importing libraries ================================
+"""NCL like functions for quick netCDF like data manipulation"""
 
 import numpy as np
 from datetime import datetime, timedelta

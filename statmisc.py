@@ -8,6 +8,8 @@
 # =======================================================
 # =======================================================
 
+"""Miscellaneous statistical functions for atmospheric analysis"""
+
 import numpy as np
 import scipy.stats as st
 
@@ -68,6 +70,27 @@ def siglev(x=None,y=None,xbar=None,ybar=None,xstd=None,ystd=None,nx=None,ny=None
     clevm = (1 - clevm)*100;
     return clevm
     
+
+
+# Calculating confidence intervals using t-test
+def cnfint(xstd,nx,clev=0.95,tail=1):
+    """ Calculates confidence interval using t-test.
+        xstd: numpy array of standard deviation of the ensemble.
+        nx: numpy array of number of members of the ensemble.
+        clev: the confidence interval (default 0.95 => 95%).
+        tail: single of double-sided tail. (default 1).
+        return value: the width of the interval (symmetric in both up and down directions) is returned."""
+
+    if tail==1:
+        cl=clev
+    else:
+        cl=1. - (1-clev)/2.0
+
+    sdbar = xstd/np.sqrt(nx);
+    tinv_val = st.t.ppf(cl,nx-1);
+    diff = tinv_val*sdbar;
+
+    return diff
 
 # Full Autocorrelation
 def autocorr(a,v):

@@ -1,10 +1,12 @@
 # ======================================================
 # ======================================================
-# Filename: misc.py
+# Filename: gslinalg.py
 # Purpose: Miscellaneous functions. See docstrings for 
 # more details
 # ======================================================
 # ======================================================
+
+"""Some simple linear algebraic functions for geospatial computations"""
 
 
 import numpy as np
@@ -103,26 +105,6 @@ def reg3d(array1, array2):
         
     return np.apply_along_axis(regfunc, 0, array1, array2)
     
-# Calculating confidence intervals using t-test
-def cnfint(xstd,nx,clev=0.95,tail=1):
-    """ Calculates confidence interval using t-test.
-        xstd: numpy array of standard deviation of the ensemble.
-        nx: numpy array of number of members of the ensemble.
-        clev: the confidence interval (default 0.95 => 95%).
-        tail: single of double-sided tail. (default 1).
-        return value: the width of the interval (symmetric in both up and down directions) is returned."""
-
-    if tail==1:
-        cl=clev
-    else:
-        cl=1. - (1-clev)/2.0
-
-    sdbar = xstd/np.sqrt(nx);
-    tinv_val = st.t.ppf(cl,nx-1);
-    diff = tinv_val*sdbar;
-
-    return diff
-
 
 if(__name__ == "__main__"):
     print "Import module and run"

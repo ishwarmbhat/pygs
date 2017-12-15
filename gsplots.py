@@ -7,6 +7,8 @@
 # =======================================================
 # =======================================================
 
+"""Simplifying plotting results from atmospheric analysis in python"""
+
 # Import required libraries
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.basemap import interp
