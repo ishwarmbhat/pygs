@@ -11,6 +11,7 @@
 
 import numpy as np
 from datetime import datetime, timedelta
+import warnings
 
 # ======================== NCL Helper Clones =================================
 def cd_calendar(time_array, time_start, option):
@@ -19,13 +20,55 @@ def cd_calendar(time_array, time_start, option):
     time_axis: Time in units of "Hours since" or "Days since"
     time_start: The starting point specified in the netcdf file. Use ncdump -h to find the units. Pass all 5 components (H, M, D, HR, S)
     options:
-    0 if Hours since
-    1 if Days since
+    'h' if Hours since
+    'd' if Days since
     """
+    
+    if(option not in ('h','d')):
+        return ValueError("option: Not a valid input. Refer function help for valid inputs")
+    
+    # Compatibility with some later timedelta. Conver to float64
+    if(not isinstance(time_array, np.ndarray)):
+        raise ValueError("Timedeltas must be a numpy array")
+        
+    time_array = time_array.astype(np.float64)
 
     # import datetime and timedelta before running this code
     return([datetime(time_start[0], time_start[1], time_start[2], time_start[3], time_start[4]) + (timedelta(days = tm)
-        if option else timedelta(hours = tm)) for tm in time_array])
+        if (option == 'd') else timedelta(hours = tm)) for tm in time_array])
+    
+    
+def subset_time(data, time, time0, time1):
+    
+    """subset_time() is used to subset arrays along a time dimension (usually the first dimension)
+    inputs:
+        data: A np.ndarray which has to be subsetted along the time dimension
+        time: A datetime list of values along the time axis of the data to be subsetted
+        [time0, time1]: Start and end of the time axis
+    outputs:
+        sub_data: A subset of the original dataset along the time dimesion from time0 to time1"""
+        
+        
+    if(not isinstance(data, np.ndarray)):
+        raise ValueError("subset_time: Data not a numpy array")
+        
+    shp = data.shape
+    if(shp[0] != len(time)):
+        raise ValueError("subset_time: first axis might not be defined as time or improper time coordinate")
+    
+    if((not isinstance(time0, datetime)) or (not isinstance(time1, datetime))):
+        raise ValueError("subset_time: datetime object expected for time0 and time1")
+    
+    if((time0 < min(time)) or (time1 > max(time))):
+        warnings.warn("subset_time: One or both of the bounds exceeds the time axis")
+    
+    dt_filt = np.array([(tm <= time1) and (tm >= time0) for tm in time])
+    sub_time = [time[i] for i in range(len(time)) if dt_filt[i]]
+    sub_data = data[dt_filt]
+    
+    return sub_data, sub_time
+    
+
 
 # Find closest value    
 def find_closest(arr, elm, option):
