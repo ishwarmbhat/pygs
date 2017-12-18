@@ -123,6 +123,7 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     contour_data = data to be plotted (lon x time)
     levels = levels for the contour of the hovmoller diagram
     [optional]
+    ew = Add "E" or "W" tag to longitude axis
     col = ncl colormap. By default test cmap
     rng = minimum axis tick and maximum x axis tick (an array of 2 values)
     defaults to None and choose the min and max of the longitudes passed
@@ -132,9 +133,11 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     l2 = np.max(lon)
     
     X,Y = np.meshgrid(lon,y)
+    
+    _delta_ = (levels[1]-levels[0])/1000.
 
-#    contour_data[contour_data > np.max(levels)] = np.max(levels)
-#    contour_data[contour_data < np.min(levels)] = np.min(levels)
+    contour_data[contour_data > np.max(levels)] = np.max(levels) - _delta_
+    contour_data[contour_data < np.min(levels)] = np.min(levels) + _delta_
     
     if(isinstance(col, str)):
         cmap = ncm.cmap(col)
@@ -157,7 +160,7 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
             raise ValueError("Expected only a 2 value array for rng")
         
     if(ew):
-        tck_lb = [str(np.abs(t)) + __get_EW__(t) for t in tck]
+        tck_lb = [str(np.int(np.abs(t))) + __get_EW__(t) for t in tck]
     else:
         tck_lb = [str(t) for t in tck]
         
@@ -245,6 +248,52 @@ def lsmask(data, lat, lon, mask, keep_mask = False):
             raise ValueError("keep_mask: Previous Mask not found")
     return np.ma.masked_array(data, msk3d)
 
+
+def fliplon(data, lon):
+    """Toggle longitude coordinate between -180 to 180 and 0 to 360
+    Formula used: lon1 = (lon+180)%360 - 180
+        Check the following link
+        http://vikas-ke-funde.blogspot.in/2010/06/convert-longitude-0-360-to-180-to-180.html
+    Inputs:
+        data - The data with longitude axis to be flipped. Rightmost longitude is assumed to be longitude
+        lon - The longitude coordinates as a 1D numpy array
+    Outputs:
+        data_re - data with toggled coordinates
+    """
+    
+    if(not isinstance(data, np.ndarray)):
+        raise ValueError("fliplon: Array passed is not numpy ndarray")
+
+    data_dim = data.shape
+    
+    if(not isinstance(lon, np.ndarray)):
+        raise ValueError("fliplon: longitude coordinate is not a numpy array")
+    
+    if(len(lon.shape) > 1):
+        raise ValueError("fliplon: logitude coordinate is not 1 Dimensional")
+    
+    nlon = len(lon)
+    
+    if(data_dim[-1] != nlon):
+        raise ValueError("fliplon: Longitude coordinate size mismatch")
+    
+    # If negative value is present, data is already in the range -180 to 180
+    if((np.min(lon) < 0) and (np.max(lon) < 180)):
+        flag = 1
+    else:
+        flag = 0 # Otherwise data is assumed to be in 0-360 range
+       
+    if(not flag): # if not in -180 to 180 form
+        lon1 = (lon + 180) % 360 - 180
+    else:
+        lon1 = lon % 360 # If it is in -180 to 180 form
+    
+    lon_sort = np.argsort(lon1)
+    
+    lon_re = lon1[lon_sort]
+    data_re = data[...,lon_sort]
+    
+    return data_re, lon_re
 
 if(__name__ == "__main__"):
     print "Import module and run"
