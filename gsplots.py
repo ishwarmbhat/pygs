@@ -29,6 +29,18 @@ def __get_EW__(num):
         return "W"
     else:
         return ""
+    
+def __get_NS__(num):
+    
+    """Get north or south for latitude
+    num: Numeric value of longitude"""
+
+    if((num > 0) & (num <= 90)):
+        return "N"
+    elif((num < 0) & (num >= -90)):
+        return "S"
+    else:
+        return ""
 
 
 # Redefine basemap plots with shapefile from Natural Earth
