@@ -41,15 +41,17 @@ def subset_time(data, time, time0, time1):
     
     """subset_time() is used to subset arrays along a time dimension (usually the first dimension)
     inputs:
-        data: A np.ndarray which has to be subsetted along the time dimension
+        data: A np.ndarray which has to be subsetted along the time dimension. Can be a numpy array
+              or a variable from a netCDF4 file (Refer netCDF4 package for more details)
         time: A datetime list of values along the time axis of the data to be subsetted
         [time0, time1]: Start and end of the time axis
     outputs:
         sub_data: A subset of the original dataset along the time dimesion from time0 to time1"""
         
-        
-    if(not isinstance(data, np.ndarray)):
-        raise ValueError("subset_time: Data not a numpy array")
+    from netCDF4 import Variable
+    
+    if(not (isinstance(data, np.ndarray) or isinstance(data, Variable))):
+        raise ValueError("Data not a numpy array or a netCDF4 variable")
         
     shp = data.shape
     if(shp[0] != len(time)):
@@ -318,7 +320,8 @@ def subset_latlon(data, lat, lon, lat_lim, lon_lim):
     """Latitude longitude subsetting for netCDF4 data similar to the coordinate
     subscripting avialable in NCL
     Inputs:
-        data - geospatial data. Last 2 dimensions assumed to be lat and lon
+        data - geospatial data. Last 2 dimensions assumed to be lat and lon. Can be a numpy array
+               or a variable from a netCDF4 file (Refer netCDF4 package for more details)
         lat - latitude coordinate array (1D)
         lon - longitude coordinate array (1D)
         lat_lim - limits for latitude; a 2 element list
