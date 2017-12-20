@@ -60,7 +60,7 @@ def plot_contour_map(contour_data, lats, lons,
                      minlev, maxlev, levspace,
                      lat_lim = [-90,90], lon_lim = [0, 360],
                      drawls = False, cmap = "testcmap", ax = None, 
-                     conf = None, ms = 0.1, rs = 3):
+                     conf = None, ms = 0.1, rs = 3, scatter = True):
     
     
     """Plot a contour map on a basemap imported from mpl_toolkits
@@ -95,32 +95,26 @@ def plot_contour_map(contour_data, lats, lons,
         m.drawlsmask()        
     # Data for the contour map    
     clevs = np.arange(minlev,maxlev+levspace,levspace)
-    
-    # Private method delta to subtract a small number to account for error in floating point rounding off
-    _delta_ = levspace/1000 * 4
-        
+            
     x,y = np.meshgrid(lons, lats)
     
     if(isinstance(cmap, str)):
         cmap = ncm.cmap(cmap)
     else:
         cmap = cmap
-    
-    if(np.ma.is_masked(contour_data)):
-        contour_data[np.logical_and(~contour_data.mask, contour_data < min(clevs))] = min(clevs) + _delta_
-        contour_data[np.logical_and(~contour_data.mask,contour_data > max(clevs))] = max(clevs) - _delta_
-    else:
-        contour_data[contour_data < min(clevs)] = min(clevs) + _delta_
-        contour_data[contour_data > max(clevs)] = max(clevs) - _delta_
 
     # contour_data = contour_data[:,lon_pos]
-    cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, origin = 'lower')
+    cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = 'both')
     
     if(conf is not None):
         conf[~ conf.mask] = ms
-        m.scatter(x[::rs,::rs],y[::rs,::rs],conf[::rs,::rs], 
-                  marker = '.', color = 'k', edgecolor = None, lw = 0)
-    
+        if(scatter):
+            m.scatter(x[::rs,::rs],y[::rs,::rs],conf[::rs,::rs], 
+                      marker = '.', color = 'k', edgecolor = None, lw = 0)
+        else:
+            m.contourf(x, y, conf, n_levels = 2, 
+                       hatches = [None, '\\\+///'], colors= 'none', extend = 'lower',
+                       linecolor = 'grey')
     return m,cs
     
 
@@ -146,17 +140,11 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     
     X,Y = np.meshgrid(lon,y)
     
-    _delta_ = (levels[1]-levels[0])/1000.
-
-    contour_data[contour_data > np.max(levels)] = np.max(levels) - _delta_
-    contour_data[contour_data < np.min(levels)] = np.min(levels) + _delta_
-    
     if(isinstance(col, str)):
         cmap = ncm.cmap(col)
-        CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, origin='lower')
+        CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = 'both')
     else:
-        CS = ax.contourf(X,Y,contour_data,levels,colors = col, origin='lower')
-        
+        CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = 'both')
 
     ax.minorticks_on()
     ax.tick_params(axis = "both", which = "both", direction = "out")
