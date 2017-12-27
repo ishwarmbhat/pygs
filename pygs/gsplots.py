@@ -95,7 +95,7 @@ def plot_contour_map(contour_data, lats, lons,
     if(drawls):
         m.drawlsmask()        
     # Data for the contour map    
-    clevs = np.arange(minlev,maxlev+levspace,levspace)
+    clevs = np.arange(minlev,maxlev+levspace/2.,levspace)
     
     if(add_cyclic):
         contour_data, lons = addcyclic(contour_data, lons)
