@@ -10,7 +10,7 @@
 """Simplifying plotting results from atmospheric analysis in python"""
 
 # Import required libraries
-from mpl_toolkits.basemap import Basemap
+from mpl_toolkits.basemap import Basemap, addcyclic
 from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
@@ -57,7 +57,7 @@ class Basemap2(Basemap):
 
 # Plot contour maps using basemap package
 def plot_contour_map(contour_data, lats, lons,
-                     minlev, maxlev, levspace,
+                     minlev, maxlev, levspace, add_cyclic = False,
                      lat_lim = [-90,90], lon_lim = [0, 360],
                      drawls = False, cmap = "testcmap", ax = None, 
                      conf = None, ms = 0.1, rs = 3, scatter = True):
@@ -70,6 +70,7 @@ def plot_contour_map(contour_data, lats, lons,
     minlev - minimum contour level
     maxlev - maximum contour level
     levspace - spacing between contours
+    add_cyclic [optional] - Add a cyclic point to the plot. Useful for full longitude ranges
     lat_lim [optional] - Limits for latitude [0, 360] by default. Must be a 2 value array-like
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
     drawls [Optional] - Toggles Landsea masks. Set to False by default
@@ -95,6 +96,9 @@ def plot_contour_map(contour_data, lats, lons,
         m.drawlsmask()        
     # Data for the contour map    
     clevs = np.arange(minlev,maxlev+levspace,levspace)
+    
+    if(add_cyclic):
+        contour_data, lons = addcyclic(contour_data, lons)
             
     x,y = np.meshgrid(lons, lats)
     
