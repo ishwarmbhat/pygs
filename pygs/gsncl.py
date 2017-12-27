@@ -364,9 +364,11 @@ def subset_latlon(data, lat, lon, lat_lim, lon_lim):
     
     # First filtering along lat and then along lon using
     # np.take slower and more resource heavy
-    # data_sub = np.take(data,np.where(lat_filt)[0],axis = -2)
-    # data_sub = np.take(data_sub, np.where(lon_filt)[0], axis = -1)
-    data_sub = data[...,np.where(lat_filt)[0],np.where(lon_filt)[0]]
+    lt0 = np.min(np.where(lat_filt)[0])
+    lt1 = np.max(np.where(lat_filt)[0])
+    ln0 = np.min(np.where(lon_filt)[0])
+    ln1 = np.max(np.where(lon_filt)[0])
+    data_sub = data[...,lt0:(lt1+1),ln0:(ln1+1)]
     
     lat_sub = lat[lat_filt]
     lon_sub = lon[lon_filt]
