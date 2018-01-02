@@ -106,5 +106,58 @@ def reg3d(array1, array2):
     return np.apply_along_axis(regfunc, 0, array1, array2)
     
 
+# Spatial kernel autocorrelation function
+def spatial_autocorr_kernel(data, k = 1):
+    
+    """Function to perform local spatial autocorrelation using a kernel of 
+    specified size
+    Input:
+        data - Spatio-temporally varying data. First axis is assumed to be time. Last 2 axes are assumed to latitude and longitude
+        k - k is a parameter for kernel size. The actual size of the kernel is 2k+1. Always > 1
+    Output:
+        Correlation matrix of size nlat x nlon - Each point is the mean correlation of one point and its neighbours defined by the kernel
+        of size (2k+1) x (2k+1)"""
+        
+    shp = data.shape
+    
+    if len(shp)!= 3:
+        raise ValueError("spatial_autocorr_kernel: Input array needs to be 3D")
+    ntime = shp[0]
+    nlat = shp[1]
+    nlon = shp[2]
+    
+    # Normalizing the data for calculating correlations
+    data = (data - data.mean(axis = 0))/data.std(axis = 0)
+    
+    corr_mat = np.empty([nlat, nlon], np.float32)
+    
+    # Padding on the y-axis
+    lat_pad = np.zeros([ntime, k, nlon])
+    data_pad = np.concatenate((lat_pad, data, lat_pad), axis = 1)
+    
+    # Padding the y-axis
+    nlat_new = nlat + 2 * k
+    lon_pad = np.zeros([ntime, nlat_new, k])
+    data_pad = np.concatenate((lon_pad, data_pad, lon_pad), axis = 2) 
+
+    
+    # At each grid
+    for i in range(k,nlat+k):
+        for j in range(k,nlon+k):
+            
+            # Kernel movement for a single point
+            acc = 0
+            xij = data_pad[:,i,j]
+            
+            # Loop over the kernel
+            for l in range(-k, k+1):
+                for m in range(-k, k+1):            
+                    xshift = data_pad[:,i+l,j+m]
+                    corr = np.dot(xij,xshift)/ntime
+                    acc = acc + corr
+            corr_mat[i-k,j-k] = acc/((2*k+1)**2)
+    
+    return corr_mat
+
 if(__name__ == "__main__"):
     print "Import module and run"
