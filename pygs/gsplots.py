@@ -59,7 +59,7 @@ class Basemap2(Basemap):
 def plot_contour_map(contour_data, lats, lons,
                      minlev, maxlev, levspace, add_cyclic = False,
                      lat_lim = [-90,90], lon_lim = [0, 360],
-                     drawls = False, cmap = "testcmap", ax = None, 
+                     drawls = False, cmap = "testcmap", ax = None, extend = 'both',
                      conf = None, ms = 0.1, rs = 3, scatter = True):
     
     
@@ -70,6 +70,7 @@ def plot_contour_map(contour_data, lats, lons,
     minlev - minimum contour level
     maxlev - maximum contour level
     levspace - spacing between contours
+    extend [optional] - Takes 3 values 'min', 'max', 'both'. Used for the contour map. 'both' by default
     add_cyclic [optional] - Add a cyclic point to the plot. Useful for full longitude ranges
     lat_lim [optional] - Limits for latitude [0, 360] by default. Must be a 2 value array-like
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
@@ -108,7 +109,9 @@ def plot_contour_map(contour_data, lats, lons,
         cmap = cmap
 
     # contour_data = contour_data[:,lon_pos]
-    cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = 'both')
+    if(extend not in ['both', 'min', 'max']):
+        raise ValueError("plot_contour_map: extend only takes 3 values - ['both', 'min', 'max']")
+    cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
     
     if(conf is not None):
         conf[~ conf.mask] = ms
