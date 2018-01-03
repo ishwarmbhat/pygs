@@ -70,7 +70,7 @@ def plot_contour_map(contour_data, lats, lons,
     minlev - minimum contour level
     maxlev - maximum contour level
     levspace - spacing between contours
-    extend [optional] - Takes 3 values 'min', 'max', 'both'. Used for the contour map. 'both' by default
+    extend [optional] - Takes 4 values 'min', 'max', 'both', 'neither'. Used for the contour map. 'both' by default
     add_cyclic [optional] - Add a cyclic point to the plot. Useful for full longitude ranges
     lat_lim [optional] - Limits for latitude [0, 360] by default. Must be a 2 value array-like
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
@@ -109,7 +109,7 @@ def plot_contour_map(contour_data, lats, lons,
         cmap = cmap
 
     # contour_data = contour_data[:,lon_pos]
-    if(extend not in ['both', 'min', 'max']):
+    if(extend not in ['both', 'min', 'max','neither']):
         raise ValueError("plot_contour_map: extend only takes 3 values - ['both', 'min', 'max']")
     cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
     
