@@ -106,6 +106,37 @@ def reg3d(array1, array2):
     return np.apply_along_axis(regfunc, 0, array1, array2)
     
 
+def pad_nd(data, k = 1, value = 0.):
+    
+    """Function to pad nD geospatial like data on all sides with value
+    for the size defined by k
+    Inputs:
+        data: Assumed to be geospatial. Last 2 dimensions are lat x lon
+        k [Optional]: The size of the padding on the edges. Defaults to 1 for a 3x3 kernel
+        value [Optional]: The value of the padding. Defaults to 0
+    """
+    
+    
+    shp = data.shape
+    if(not isinstance(data, np.ndarray)):
+        raise ValueError("pad_nd: Data not a numpy array")
+    elif(len(shp) < 2):
+        raise ValueError("pad_nd: Data must have atlease lat and lon dimenions")
+    
+    lat_pad_shape = list(data.shape)
+    lat_pad_shape[-2] = k
+    lat_pad = np.zeros(lat_pad_shape)
+    data_pad = np.concatenate((lat_pad, data, lat_pad), axis = -2)       
+    
+    # Padding the y-axis
+    lon_pad_shape = list(data_pad.shape)
+    lon_pad_shape[-1] = k
+    lon_pad = np.zeros(lon_pad_shape)
+    data_pad = np.concatenate((lon_pad, data_pad, lon_pad), axis = 2) 
+    
+    return data_pad
+
+
 # Spatial kernel autocorrelation function
 def spatial_autocorr_kernel(data, k = 1):
     
@@ -131,15 +162,8 @@ def spatial_autocorr_kernel(data, k = 1):
     
     corr_mat = np.empty([nlat, nlon], np.float32)
     
-    # Padding on the y-axis
-    lat_pad = np.zeros([ntime, k, nlon])
-    data_pad = np.concatenate((lat_pad, data, lat_pad), axis = 1)
-    
-    # Padding the y-axis
-    nlat_new = nlat + 2 * k
-    lon_pad = np.zeros([ntime, nlat_new, k])
-    data_pad = np.concatenate((lon_pad, data_pad, lon_pad), axis = 2) 
-
+    # add padding    
+    data_pad = pad_nd(data, k = k, value = 0.)
     
     # At each grid
     for i in range(k,nlat+k):
