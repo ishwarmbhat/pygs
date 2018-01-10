@@ -138,32 +138,45 @@ def pad_nd(data, k = 1, value = 0.):
 
 
 # Spatial kernel autocorrelation function
-def spatial_autocorr_kernel(data, k = 1):
+def spatial_autocorr_kernel(datax, k = 1, datay = None):
     
     """Function to perform local spatial autocorrelation using a kernel of 
     specified size
     Input:
-        data - Spatio-temporally varying data. First axis is assumed to be time. Last 2 axes are assumed to latitude and longitude
+        datax - Spatio-temporally varying data. First axis is assumed to be time. Last 2 axes are assumed to latitude and longitude
         k - k is a parameter for kernel size. The actual size of the kernel is 2k+1. Always > 1
+        datay [Optional]: If a cross correlation is required. Can be used in the case of exploring multivariate relationships
     Output:
         Correlation matrix of size nlat x nlon - Each point is the mean correlation of one point and its neighbours defined by the kernel
         of size (2k+1) x (2k+1)"""
         
-    shp = data.shape
+    shpx = datax.shape
     
-    if len(shp)!= 3:
+    if len(shpx)!= 3:
         raise ValueError("spatial_autocorr_kernel: Input array needs to be 3D")
-    ntime = shp[0]
-    nlat = shp[1]
-    nlon = shp[2]
+        
+    ntime = shpx[0]
+    nlat = shpx[1]
+    nlon = shpx[2]
+        
+    if(datay is not None):
+        shpy = datay.shape
+        if len(shpy)!= 3:
+            raise ValueError("spatial_autocorr_kernel: Target array datay must be 3D")
+        ntimey, nlaty, nlony = shpy
+        if(ntime != ntimey or nlon != nlony or nlat != nlaty):
+            raise ValueError("spatial_autocorr_kernel: Arrays datax and datay mismatched")
+        
+        # Subtract mean
+        datay = (datay - datay.mean(axis = 0))/datay.std(axis = 0)
     
     # Normalizing the data for calculating correlations
-    data = (data - data.mean(axis = 0))/data.std(axis = 0)
+    datax = (datax - datax.mean(axis = 0))/datax.std(axis = 0)
     
     corr_mat = np.empty([nlat, nlon], np.float32)
     
     # add padding    
-    data_pad = pad_nd(data, k = k, value = 0.)
+    data_pad = pad_nd(datax, k = k, value = 0.)
     
     # At each grid
     for i in range(k,nlat+k):
@@ -171,7 +184,11 @@ def spatial_autocorr_kernel(data, k = 1):
             
             # Kernel movement for a single point
             acc = 0
-            xij = data_pad[:,i,j]
+            
+            if(datay is not None):
+                xij = datay[:,i-k, j-k]
+            else:
+                xij = data_pad[:,i,j]
             
             # Loop over the kernel
             for l in range(-k, k+1):
