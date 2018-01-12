@@ -126,8 +126,8 @@ def plot_contour_map(contour_data, lats, lons,
     
 
 def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap", 
-                rng = None, step = 60, ew = False, norm = False,
-                vmin = None, vmax = None):
+                rng = None, step = 60, ew = False, norm = False, 
+                extend = 'both', vmin = None, vmax = None):
     
     """Draw hovmoller diagrams (time vs lat)
     Inputs:
@@ -136,6 +136,7 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     contour_data = data to be plotted (lon x time)
     levels = levels for the contour of the hovmoller diagram
     [optional]
+    exted: Which side of the colorbar to extend: Must be one of 'both', 'min', 'max', 'neither'
     ew = Add "E" or "W" tag to longitude axis
     col = ncl colormap. By default test cmap
     rng = minimum axis tick and maximum x axis tick (an array of 2 values)
@@ -145,13 +146,16 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     l1 = np.min(lon)
     l2 = np.max(lon)
     
+    if(extend not in ['both', 'min', 'max', 'neither']):
+        raise ValueError("hov_diagram: Unexpected value for extend")
+    
     X,Y = np.meshgrid(lon,y)
     
     if(isinstance(col, str)):
         cmap = ncm.cmap(col)
-        CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = 'both')
+        CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = extend)
     else:
-        CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = 'both')
+        CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = extend)
 
     ax.minorticks_on()
     ax.tick_params(axis = "both", which = "both", direction = "out")
