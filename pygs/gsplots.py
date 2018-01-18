@@ -10,7 +10,7 @@
 """Simplifying plotting results from atmospheric analysis in python"""
 
 # Import required libraries
-from mpl_toolkits.basemap import Basemap, addcyclic
+from mpl_toolkits.basemap import Basemap, addcyclic, shiftgrid
 from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
@@ -56,9 +56,11 @@ class Basemap2(Basemap):
         self.readshapefile(shapefile, 'coastline', linewidth=1.)
 
 # Plot contour maps using basemap package
-def plot_contour_map(contour_data, lats, lons,
+def plot_contour_map(contour_data, lats, lons, 
                      minlev, maxlev, levspace, add_cyclic = False,
                      lat_lim = [-90,90], lon_lim = [0, 360],
+                     proj = "cyl", drawgrids = None,
+                     center_lon = 0,
                      drawls = False, cmap = "testcmap", ax = None, extend = 'both',
                      conf = None, ms = 0.1, rs = 3, scatter = True):
     
@@ -72,8 +74,13 @@ def plot_contour_map(contour_data, lats, lons,
     levspace - spacing between contours
     extend [optional] - Takes 4 values 'min', 'max', 'both', 'neither'. Used for the contour map. 'both' by default
     add_cyclic [optional] - Add a cyclic point to the plot. Useful for full longitude ranges
+    proj [optional] - Projection of the map.
+    Takes only three possible values from the range of projections available in matplotlib ['hammer', 'robin', 'cyl'].
+    Rectangle region bounds are ignored for both hammer and robin. Only lat_0 is considered. Default is 'cyl'
+    drawgrids [optional] - Draw grids on the map at this spacing -  a 2 element tuple. Is only used for non-cylindrical maps. Default None
     lat_lim [optional] - Limits for latitude [0, 360] by default. Must be a 2 value array-like
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
+    lonshift [optional] - Shift the longitude to match lon_0. This argument takes the amount by which to shift
     drawls [Optional] - Toggles Landsea masks. Set to False by default
     cmap[Optional] - ncl colormap to use. Default is testcmap
     ax [Optional] - which axis to draw upon
@@ -83,25 +90,54 @@ def plot_contour_map(contour_data, lats, lons,
     if (len(lat_lim) != 2) or (len(lon_lim)!=2):
         raise ValueError("Only 2 values expected for axis limits")
         
-    m = Basemap(projection = 'cyl', llcrnrlat = lat_lim[0], \
-        urcrnrlat = lat_lim[1], \
-        area_thresh = 10000,
-        llcrnrlon = lon_lim[0], # urcrnrlon = 360,
-        urcrnrlon = lon_lim[1],
-        resolution = 'l', suppress_ticks = False, ax = ax)
-        
-    m.drawcoastlines()
-
-    # If lsmask is required    
-    if(drawls):
-        m.drawlsmask()        
+    
     # Data for the contour map    
     clevs = np.arange(minlev,maxlev+levspace/2.,levspace)
     
     if(add_cyclic):
         contour_data, lons = addcyclic(contour_data, lons)
+    
+    if(proj not in ('cyl', 'hammer', 'robin')):
+        raise ValueError("plot_contour_map: proj not in one of ['robin', 'hammer', cyl'")
+    if(proj == 'cyl'):
+        m = Basemap(projection = 'cyl', llcrnrlat = lat_lim[0], \
+                    urcrnrlat = lat_lim[1], \
+                    area_thresh = 10000,
+                    llcrnrlon = lon_lim[0], # urcrnrlon = 360,
+                    urcrnrlon = lon_lim[1],
+                    resolution = 'l', suppress_ticks = False, ax = ax)
+    elif(proj == 'hammer' or proj == 'robin'):
+        m = Basemap(projection = proj,
+                    area_thresh = 10000,
+                    lon_0 = center_lon,
+                    resolution = 'l', suppress_ticks = True, ax = ax)
             
-    x,y = np.meshgrid(lons, lats)
+    m.drawcoastlines()
+    
+    nlon = len(lons)
+    
+    # If lsmask is required    
+    if(drawls):
+        m.drawlsmask()
+    
+    
+    if(proj != 'cyl'):
+        # If central longitude is not zero or the central value of the longitude array, the longitude grid 
+        # also has to be shifted to accomodate for the new grid structure
+        if(lons[nlon/2] != center_lon): # which means we need to ensure central longitude is set to lat_0
+            lon_start = center_lon - 180
+            contour_data, lons = shiftgrid(lon_start,contour_data, lons)
+        x,y = np.meshgrid(lons, lats)
+        x,y = m(x,y) # Project meshgrid onto map
+        if(drawgrids is not None):
+            if(len(drawgrids) != 2):
+                raise ValueError("plot_contour_map: Expected 2 values as tuple for drawgrids")
+
+            m.drawparallels(np.arange(lat_lim[0], lat_lim[1]+1, drawgrids[0]), labels = [1,0,0,0])
+            m.drawmeridians(np.arange(lon_lim[0], lon_lim[1]+1, drawgrids[1]))
+    else:
+        x,y = np.meshgrid(lons, lats)
+        
     
     if(isinstance(cmap, str)):
         cmap = ncm.cmap(cmap)
