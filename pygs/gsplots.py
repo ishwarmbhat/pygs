@@ -14,6 +14,7 @@ from mpl_toolkits.basemap import Basemap, addcyclic, shiftgrid
 from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
+import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 import os
 
@@ -94,9 +95,6 @@ def plot_contour_map(contour_data, lats, lons,
     # Data for the contour map    
     clevs = np.arange(minlev,maxlev+levspace/2.,levspace)
     
-    if(add_cyclic):
-        contour_data, lons = addcyclic(contour_data, lons)
-    
     if(proj not in ('cyl', 'hammer', 'robin')):
         raise ValueError("plot_contour_map: proj not in one of ['robin', 'hammer', cyl'")
     if(proj == 'cyl'):
@@ -122,11 +120,17 @@ def plot_contour_map(contour_data, lats, lons,
     
     
     if(proj != 'cyl'):
+        
         # If central longitude is not zero or the central value of the longitude array, the longitude grid 
-        # also has to be shifted to accomodate for the new grid structure
+        # also has to be shifted to accomodate for the new grid structure        
         if(lons[nlon/2] != center_lon): # which means we need to ensure central longitude is set to lat_0
             lon_start = center_lon - 180
             contour_data, lons = shiftgrid(lon_start,contour_data, lons)
+            
+        # Addcyclic is applied after centering the logitude since it can break the code because of the monotonicity issue
+        if(add_cyclic):
+            contour_data, lons = addcyclic(contour_data, lons)
+        
         x,y = np.meshgrid(lons, lats)
         x,y = m(x,y) # Project meshgrid onto map
         if(drawgrids is not None):
@@ -136,6 +140,9 @@ def plot_contour_map(contour_data, lats, lons,
             m.drawparallels(np.arange(lat_lim[0], lat_lim[1]+1, drawgrids[0]), labels = [1,0,0,0])
             m.drawmeridians(np.arange(lon_lim[0], lon_lim[1]+1, drawgrids[1]))
     else:
+        
+        if(add_cyclic):
+            contour_data, lons = addcyclic(contour_data, lons)
         x,y = np.meshgrid(lons, lats)
         
     
@@ -149,6 +156,23 @@ def plot_contour_map(contour_data, lats, lons,
         raise ValueError("plot_contour_map: extend only takes 3 values - ['both', 'min', 'max']")
     cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
     
+    # Hack for map limits. Note: there needs to be a better way or simply migrate to cartopy
+    if(proj != 'cyl'):
+        
+        # Map projections for latitude
+        llcrnrlon, llcrnrlat = m(min(lons), lat_lim[0])
+        urcrnrlon, urcrnrlat = m(max(lons), lat_lim[1])
+        
+        if(ax is None):
+            ax = plt.gca()
+        
+        ax.set_ylim(llcrnrlat, urcrnrlat)
+        
+        # Drawing map boundary with black background. 
+        # Relies on resolution being a little off. Is an unavoidable hack. Need to find something better
+        m.drawmapboundary(fill_color = 'k')
+    
+    # Hatching the plot with significance levels
     if(conf is not None):
         conf[~ conf.mask] = ms
         if(scatter):
@@ -158,21 +182,22 @@ def plot_contour_map(contour_data, lats, lons,
             m.contourf(x, y, conf, n_levels = 2, 
                        hatches = [None, '\\\+///'], colors= 'none', extend = 'lower',
                        linecolor = 'grey')
+            
     return m,cs
     
 
-def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap", 
+def hov_diagram(lon,y,contour_data,levels,col = "testcmap", ax = None,
                 rng = None, step = 60, ew = False, norm = False, 
                 extend = 'both', vmin = None, vmax = None):
     
     """Draw hovmoller diagrams (time vs lat)
     Inputs:
-    ax = an axis on a plot to draw the plot on
     lon, y = x and y axes respectively. lon is usually longitude, y is time,
     contour_data = data to be plotted (lon x time)
     levels = levels for the contour of the hovmoller diagram
     [optional]
-    exted: Which side of the colorbar to extend: Must be one of 'both', 'min', 'max', 'neither'
+    ax = an axis on a plot to draw the plot on
+    extend = Which side of the colorbar to extend: Must be one of 'both', 'min', 'max', 'neither'
     ew = Add "E" or "W" tag to longitude axis
     col = ncl colormap. By default test cmap
     rng = minimum axis tick and maximum x axis tick (an array of 2 values)
@@ -189,10 +214,19 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     
     if(isinstance(col, str)):
         cmap = ncm.cmap(col)
-        CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = extend)
+        if(ax is not None):
+            CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = extend)
+        else:
+            CS = plt.contourf(X,Y,contour_data,levels,cmap=cmap, extend = extend)
     else:
-        CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = extend)
-
+        if(ax is not None):
+            CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = extend)
+        else:
+            CS = plt.contourf(X,Y,contour_data,levels,colors = col, extend = extend)
+            
+    if(ax is None):
+        ax = plt.gca()
+        
     ax.minorticks_on()
     ax.tick_params(axis = "both", which = "both", direction = "out")
     ax.tick_params(axis = "y", which = "minor", left = "off")
