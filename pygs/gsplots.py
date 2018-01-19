@@ -15,6 +15,7 @@ from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcl
 from netCDF4 import Dataset
 import os
 
@@ -85,7 +86,7 @@ def plot_contour_map(contour_data, lats, lons,
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
     lonshift [optional] - Shift the longitude to match lon_0. This argument takes the amount by which to shift
     drawls [Optional] - Toggles Landsea masks. Set to False by default
-    cmap[Optional] - ncl colormap to use. Default is testcmap
+    cmap[Optional] - ncl colormap to use. Default is testcmap, or a matplotlib map or a list of colors
     ax [Optional] - which axis to draw upon
     conf [Optional] - Draw a scatter plot of 1s and 0s signifiying confidence 
     levels"""   
@@ -148,15 +149,19 @@ def plot_contour_map(contour_data, lats, lons,
         x,y = np.meshgrid(lons, lats)
         
     
-    if(isinstance(cmap, str)):
-        cmap = ncm.cmap(cmap)
-    else:
-        cmap = cmap
-
     # contour_data = contour_data[:,lon_pos]
     if(extend not in ['both', 'min', 'max','neither']):
         raise ValueError("plot_contour_map: extend only takes 3 values - ['both', 'min', 'max']")
-    cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
+        
+    if(isinstance(cmap, str)):
+        cmap = ncm.cmap(cmap)
+    
+    if(isinstance(cmap, str) or isinstance(cmap, mcl.ListedColormap) or isinstance(cmap, mcl.LinearSegmentedColormap)):
+        cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
+    elif(isinstance(cmap, np.ndarray)):
+        cs = m.contourf(x, y, contour_data, clevs, colors = cmap, extend = extend)
+    else:
+        raise ValueError("Invalid Colormap provided")
     
     # Hack for map limits. Note: there needs to be a better way or simply migrate to cartopy
     if(proj != 'cyl'):
