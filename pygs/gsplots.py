@@ -60,8 +60,9 @@ class Basemap2(Basemap):
 def plot_contour_map(contour_data, lats, lons, 
                      minlev, maxlev, levspace, add_cyclic = False,
                      lat_lim = [-90,90], lon_lim = [0, 360],
-                     proj = "cyl", drawgrids = None,
-                     center_lon = 0,
+                     proj = "cyl", drawgrids = None, gridfont = 10, gridlat = [-90,90],
+                     gridlon = [0,360],                
+                     center_lon = 0, 
                      drawls = False, cmap = "testcmap", ax = None, extend = 'both',
                      conf = None, ms = 0.1, rs = 3, scatter = True):
     
@@ -79,6 +80,7 @@ def plot_contour_map(contour_data, lats, lons,
     Takes only three possible values from the range of projections available in matplotlib ['hammer', 'robin', 'cyl'].
     Rectangle region bounds are ignored for both hammer and robin. Only lat_0 is considered. Default is 'cyl'
     drawgrids [optional] - Draw grids on the map at this spacing -  a 2 element tuple. Is only used for non-cylindrical maps. Default None
+    gridfont [optional] - Fontsize of grid label
     lat_lim [optional] - Limits for latitude [0, 360] by default. Must be a 2 value array-like
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
     lonshift [optional] - Shift the longitude to match lon_0. This argument takes the amount by which to shift
@@ -137,8 +139,8 @@ def plot_contour_map(contour_data, lats, lons,
             if(len(drawgrids) != 2):
                 raise ValueError("plot_contour_map: Expected 2 values as tuple for drawgrids")
 
-            m.drawparallels(np.arange(lat_lim[0], lat_lim[1]+1, drawgrids[0]), labels = [1,0,0,0])
-            m.drawmeridians(np.arange(lon_lim[0], lon_lim[1]+1, drawgrids[1]))
+            m.drawparallels(np.arange(gridlat[0], gridlat[1]+1, drawgrids[0]), labels = [1,0,0,0], fontsize = gridfont)
+            m.drawmeridians(np.arange(gridlon[0], gridlon[1]+1, drawgrids[1]), fontsize = gridfont)
     else:
         
         if(add_cyclic):
