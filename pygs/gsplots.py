@@ -10,10 +10,12 @@
 """Simplifying plotting results from atmospheric analysis in python"""
 
 # Import required libraries
-from mpl_toolkits.basemap import Basemap, addcyclic
+from mpl_toolkits.basemap import Basemap, addcyclic, shiftgrid
 from mpl_toolkits.basemap import interp
 import numpy as np
 import nclcmaps as ncm
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcl
 from netCDF4 import Dataset
 import os
 
@@ -56,9 +58,12 @@ class Basemap2(Basemap):
         self.readshapefile(shapefile, 'coastline', linewidth=1.)
 
 # Plot contour maps using basemap package
-def plot_contour_map(contour_data, lats, lons,
+def plot_contour_map(contour_data, lats, lons, 
                      minlev, maxlev, levspace, add_cyclic = False,
                      lat_lim = [-90,90], lon_lim = [0, 360],
+                     proj = "cyl", drawgrids = None, gridfont = 10, gridlat = [-90,90],
+                     gridlon = [0,360],                
+                     center_lon = 0, 
                      drawls = False, cmap = "testcmap", ax = None, extend = 'both',
                      conf = None, ms = 0.1, rs = 3, scatter = True):
     
@@ -72,10 +77,16 @@ def plot_contour_map(contour_data, lats, lons,
     levspace - spacing between contours
     extend [optional] - Takes 4 values 'min', 'max', 'both', 'neither'. Used for the contour map. 'both' by default
     add_cyclic [optional] - Add a cyclic point to the plot. Useful for full longitude ranges
+    proj [optional] - Projection of the map.
+    Takes only three possible values from the range of projections available in matplotlib ['hammer', 'robin', 'cyl'].
+    Rectangle region bounds are ignored for both hammer and robin. Only lat_0 is considered. Default is 'cyl'
+    drawgrids [optional] - Draw grids on the map at this spacing -  a 2 element tuple. Is only used for non-cylindrical maps. Default None
+    gridfont [optional] - Fontsize of grid label
     lat_lim [optional] - Limits for latitude [0, 360] by default. Must be a 2 value array-like
     lon_lim [optional] - Limits for longitude [-90,90] by default. Must be a 2 value array-like
+    lonshift [optional] - Shift the longitude to match lon_0. This argument takes the amount by which to shift
     drawls [Optional] - Toggles Landsea masks. Set to False by default
-    cmap[Optional] - ncl colormap to use. Default is testcmap
+    cmap[Optional] - ncl colormap to use. Default is testcmap, or a matplotlib map or a list of colors
     ax [Optional] - which axis to draw upon
     conf [Optional] - Draw a scatter plot of 1s and 0s signifiying confidence 
     levels"""   
@@ -83,36 +94,92 @@ def plot_contour_map(contour_data, lats, lons,
     if (len(lat_lim) != 2) or (len(lon_lim)!=2):
         raise ValueError("Only 2 values expected for axis limits")
         
-    m = Basemap(projection = 'cyl', llcrnrlat = lat_lim[0], \
-        urcrnrlat = lat_lim[1], \
-        area_thresh = 10000,
-        llcrnrlon = lon_lim[0], # urcrnrlon = 360,
-        urcrnrlon = lon_lim[1],
-        resolution = 'l', suppress_ticks = False, ax = ax)
-        
-    m.drawcoastlines()
-
-    # If lsmask is required    
-    if(drawls):
-        m.drawlsmask()        
+    
     # Data for the contour map    
     clevs = np.arange(minlev,maxlev+levspace/2.,levspace)
     
-    if(add_cyclic):
-        contour_data, lons = addcyclic(contour_data, lons)
+    if(proj not in ('cyl', 'hammer', 'robin')):
+        raise ValueError("plot_contour_map: proj not in one of ['robin', 'hammer', cyl'")
+    if(proj == 'cyl'):
+        m = Basemap(projection = 'cyl', llcrnrlat = lat_lim[0], \
+                    urcrnrlat = lat_lim[1], \
+                    area_thresh = 10000,
+                    llcrnrlon = lon_lim[0], # urcrnrlon = 360,
+                    urcrnrlon = lon_lim[1],
+                    resolution = 'l', suppress_ticks = False, ax = ax)
+    elif(proj == 'hammer' or proj == 'robin'):
+        m = Basemap(projection = proj,
+                    area_thresh = 10000,
+                    lon_0 = center_lon,
+                    resolution = 'l', suppress_ticks = True, ax = ax)
             
-    x,y = np.meshgrid(lons, lats)
+    m.drawcoastlines()
     
-    if(isinstance(cmap, str)):
-        cmap = ncm.cmap(cmap)
-    else:
-        cmap = cmap
+    nlon = len(lons)
+    
+    # If lsmask is required    
+    if(drawls):
+        m.drawlsmask()
+    
+    
+    if(proj != 'cyl'):
+        
+        # If central longitude is not zero or the central value of the longitude array, the longitude grid 
+        # also has to be shifted to accomodate for the new grid structure        
+        if(lons[nlon/2] != center_lon): # which means we need to ensure central longitude is set to lat_0
+            lon_start = center_lon - 180
+            contour_data, lons = shiftgrid(lon_start,contour_data, lons)
+            
+        # Addcyclic is applied after centering the logitude since it can break the code because of the monotonicity issue
+        if(add_cyclic):
+            contour_data, lons = addcyclic(contour_data, lons)
+        
+        x,y = np.meshgrid(lons, lats)
+        x,y = m(x,y) # Project meshgrid onto map
+        if(drawgrids is not None):
+            if(len(drawgrids) != 2):
+                raise ValueError("plot_contour_map: Expected 2 values as tuple for drawgrids")
 
+            m.drawparallels(np.arange(gridlat[0], gridlat[1]+1, drawgrids[0]), labels = [1,0,0,0], fontsize = gridfont)
+            m.drawmeridians(np.arange(gridlon[0], gridlon[1]+1, drawgrids[1]), fontsize = gridfont)
+    else:
+        
+        if(add_cyclic):
+            contour_data, lons = addcyclic(contour_data, lons)
+        x,y = np.meshgrid(lons, lats)
+        
+    
     # contour_data = contour_data[:,lon_pos]
     if(extend not in ['both', 'min', 'max','neither']):
         raise ValueError("plot_contour_map: extend only takes 3 values - ['both', 'min', 'max']")
-    cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
+        
+    if(isinstance(cmap, str)):
+        cmap = ncm.cmap(cmap)
     
+    if(isinstance(cmap, str) or isinstance(cmap, mcl.ListedColormap) or isinstance(cmap, mcl.LinearSegmentedColormap)):
+        cs = m.contourf(x, y, contour_data, clevs, cmap = cmap, extend = extend)
+    elif(isinstance(cmap, np.ndarray)):
+        cs = m.contourf(x, y, contour_data, clevs, colors = cmap, extend = extend)
+    else:
+        raise ValueError("Invalid Colormap provided")
+    
+    # Hack for map limits. Note: there needs to be a better way or simply migrate to cartopy
+    if(proj != 'cyl'):
+        
+        # Map projections for latitude
+        llcrnrlon, llcrnrlat = m(min(lons), lat_lim[0])
+        urcrnrlon, urcrnrlat = m(max(lons), lat_lim[1])
+        
+        if(ax is None):
+            ax = plt.gca()
+        
+        ax.set_ylim(llcrnrlat, urcrnrlat)
+        
+        # Drawing map boundary with black background. 
+        # Relies on resolution being a little off. Is an unavoidable hack. Need to find something better
+        m.drawmapboundary(fill_color = 'k')
+    
+    # Hatching the plot with significance levels
     if(conf is not None):
         conf[~ conf.mask] = ms
         if(scatter):
@@ -122,20 +189,22 @@ def plot_contour_map(contour_data, lats, lons,
             m.contourf(x, y, conf, n_levels = 2, 
                        hatches = [None, '\\\+///'], colors= 'none', extend = 'lower',
                        linecolor = 'grey')
+            
     return m,cs
     
 
-def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap", 
-                rng = None, step = 60, ew = False, norm = False,
-                vmin = None, vmax = None):
+def hov_diagram(lon,y,contour_data,levels,col = "testcmap", ax = None,
+                rng = None, step = 60, ew = False, norm = False, 
+                extend = 'both', vmin = None, vmax = None):
     
     """Draw hovmoller diagrams (time vs lat)
     Inputs:
-    ax = an axis on a plot to draw the plot on
     lon, y = x and y axes respectively. lon is usually longitude, y is time,
     contour_data = data to be plotted (lon x time)
     levels = levels for the contour of the hovmoller diagram
     [optional]
+    ax = an axis on a plot to draw the plot on
+    extend = Which side of the colorbar to extend: Must be one of 'both', 'min', 'max', 'neither'
     ew = Add "E" or "W" tag to longitude axis
     col = ncl colormap. By default test cmap
     rng = minimum axis tick and maximum x axis tick (an array of 2 values)
@@ -145,14 +214,26 @@ def hov_diagram(ax,lon,y,contour_data,levels,col = "testcmap",
     l1 = np.min(lon)
     l2 = np.max(lon)
     
+    if(extend not in ['both', 'min', 'max', 'neither']):
+        raise ValueError("hov_diagram: Unexpected value for extend")
+    
     X,Y = np.meshgrid(lon,y)
     
     if(isinstance(col, str)):
         cmap = ncm.cmap(col)
-        CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = 'both')
+        if(ax is not None):
+            CS = ax.contourf(X,Y,contour_data,levels,cmap=cmap, extend = extend)
+        else:
+            CS = plt.contourf(X,Y,contour_data,levels,cmap=cmap, extend = extend)
     else:
-        CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = 'both')
-
+        if(ax is not None):
+            CS = ax.contourf(X,Y,contour_data,levels,colors = col, extend = extend)
+        else:
+            CS = plt.contourf(X,Y,contour_data,levels,colors = col, extend = extend)
+            
+    if(ax is None):
+        ax = plt.gca()
+        
     ax.minorticks_on()
     ax.tick_params(axis = "both", which = "both", direction = "out")
     ax.tick_params(axis = "y", which = "minor", left = "off")
@@ -207,6 +288,8 @@ def lsmask(data, lat, lon, mask, keep_mask = False):
         raise ValueError("lon: Longitude not in range 0:360!")
     
     mloc = os.path.join(os.path.dirname(__file__), 'data/landsea.nc')
+    
+    print("Picking up file from " + mloc)
     
     f = Dataset(mloc, "r")
     lsm = f.variables["LSMASK"]
