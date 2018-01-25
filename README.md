@@ -26,5 +26,4 @@ statmisc.py - Small modele with statistical functions related to significance le
 1. netCDF4 variables can now be coordinate subscripted
 2. Masking in wgt_area_average fixed
 3. Added thresholding to Contour maps (bad idea)
-4. Added distutils packaging with setup.py. Package can now be installed w    ith setup.py or pip
-
+4. Added distutils packaging with setup.py. Package can now be installed with setup.py or pip
