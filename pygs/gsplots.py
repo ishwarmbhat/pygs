@@ -289,6 +289,8 @@ def lsmask(data, lat, lon, mask, keep_mask = False):
     
     mloc = os.path.join(os.path.dirname(__file__), 'data/landsea.nc')
     
+    print("Picking up file from " + mloc)
+    
     f = Dataset(mloc, "r")
     lsm = f.variables["LSMASK"]
     lat_ls = f.variables["lat"][:]
