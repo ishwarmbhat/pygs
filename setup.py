@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pygs',
-        version = '0.13',
+        version = '0.14a',
         description = 'Package for geospatial analysis and plotting',
         url = 'https://ishwarmbhat.github.io/pygs.html',
         author = 'Ishwar M',
