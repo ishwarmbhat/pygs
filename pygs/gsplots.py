@@ -65,7 +65,7 @@ def plot_contour_map(contour_data, lats, lons,
                      gridlon = [0,360],                
                      center_lon = 0, 
                      drawls = False, cmap = "testcmap", ax = None, extend = 'both',
-                     conf = None, ms = 0.1, rs = 3, scatter = True):
+                     conf = None, ms = 0.1, rs = 3, scatter = True, coastwidth = 1.):
     
     
     """Plot a contour map on a basemap imported from mpl_toolkits
@@ -89,7 +89,8 @@ def plot_contour_map(contour_data, lats, lons,
     cmap[Optional] - ncl colormap to use. Default is testcmap, or a matplotlib map or a list of colors
     ax [Optional] - which axis to draw upon
     conf [Optional] - Draw a scatter plot of 1s and 0s signifiying confidence 
-    levels"""   
+    levels
+    coastwidth [Optional]. Width of coastlines"""   
  
     if (len(lat_lim) != 2) or (len(lon_lim)!=2):
         raise ValueError("Only 2 values expected for axis limits")
@@ -113,7 +114,7 @@ def plot_contour_map(contour_data, lats, lons,
                     lon_0 = center_lon,
                     resolution = 'l', suppress_ticks = True, ax = ax)
             
-    m.drawcoastlines()
+    m.drawcoastlines(linewidth = coastwidth)
     
     nlon = len(lons)
     
