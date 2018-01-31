@@ -6,8 +6,7 @@ gsplots.py - Simplifying geospatial plotting and hovmoller diagrams. Other funct
 statmisc.py - Small modele with statistical functions related to significance level calculations, time series, and so on..."""
 
 import sys
-
-if(sys.version.split('|')[0].strip) == "3.6.3":
+if(sys.version.split('|')[0].strip()) == "3.6.3":
     from .gsplots import *
     from .gsncl import *
     from .statmisc import *
