@@ -5,7 +5,16 @@ gsncl.py - Porting NCL like functions to Python like area averaging, area sum an
 gsplots.py - Simplifying geospatial plotting and hovmoller diagrams. Other functions will be added as and when required
 statmisc.py - Small modele with statistical functions related to significance level calculations, time series, and so on..."""
 
-import gsplots
-import gsncl
-import statmisc
-import gslinalg
+import sys
+
+if(sys.version.split('|')[0].strip) == "3.6.3":
+    from .gsplots import *
+    from .gsncl import *
+    from .statmisc import *
+    from .gslinalg import *
+
+else:
+    import gsplots
+    import gsncl
+    import statmisc
+    import gslinalg

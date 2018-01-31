@@ -201,4 +201,4 @@ def spatial_autocorr_kernel(datax, k = 1, datay = None):
     return corr_mat
 
 if(__name__ == "__main__"):
-    print "Import module and run"
+    print("Import module and run")
