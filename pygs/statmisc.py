@@ -206,4 +206,4 @@ def mann_kendall(data):
     
 
 if(__name__ == "__main__"):
-    print "Import module and run"
+    print("Import module and run")

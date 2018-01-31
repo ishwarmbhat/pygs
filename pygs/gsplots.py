@@ -387,4 +387,4 @@ def fliplon(data, lon):
     return data_re, lon_re
 
 if(__name__ == "__main__"):
-    print "Import module and run"
+    print("Import module and run")
