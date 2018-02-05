@@ -14,12 +14,10 @@ import numpy as np
 import scipy.stats as st
 
 # Calculate two-tailed signficance levels using t-test
-def siglev(x=None,y=None,xbar=None,ybar=None,xstd=None,ystd=None,nx=None,ny=None):
+def siglev(x=None,y=None,xbar=None,ybar=None,xstd=None,ystd=None,nx=None,ny=None,pooled=False):
     """Conduct unpaired-two sample t-test and signficance levels. Either pass
     the samples directly or the means, standard deviations and number of observ-
     ations. 
-    The function can be used to run one sample t-test by setting ny = 1 and passing
-    ybar directly as the mean with standard deviation ystd being 0
     Inputs:
         x: [Optional] 1st set of samples
         y: [Optional] 2nd set of samples
@@ -29,10 +27,13 @@ def siglev(x=None,y=None,xbar=None,ybar=None,xstd=None,ystd=None,nx=None,ny=None
         ystd: [Optional] Standard Deviation of 2nd sample set
         nx: [Optional] Number of samples in 1st sample set
         ny: [Optional] Number of samples in 2nd sample set
+        pooled: [Optional]: If pooled variances to be used. True => Pooled variance 
+        else separate variances. Defaults to False
     Either x or (xbar, xstd, nx) should be passed. Both cannot be passed together
     Same holds for y
+    To use for one sample t-tests, set ybar = population mean, ystd = 0, ny = 1 and pooled = False
     Output: 
-        clevm: Signficance level using paired t-test in percentage        
+        clevm: Signficance level using two sample t-test in percentage
     """
     
 
@@ -62,14 +63,16 @@ def siglev(x=None,y=None,xbar=None,ybar=None,xstd=None,ystd=None,nx=None,ny=None
             sy = ystd
 
     dof = nx + ny - 2;
-
-    denom = ((nx-1)*sx**2 + (ny-1)*sy**2)/(nx+ny-2)*(nx+ny)/(nx*ny);
+    
+    if(pooled):
+        denom = ((nx-1)*sx**2 + (ny-1)*sy**2)/(nx+ny-2)*(nx+ny)/(nx*ny);
+    else:
+        denom = (sx**2/nx + sy**2/ny)
     tval = np.ma.abs(xbar-ybar)/np.sqrt(denom);
     clevm = st.t.cdf(tval,dof);
     clevm = (1 - clevm)*2;
     clevm = (1 - clevm)*100;
     return clevm
-    
 
 
 # Calculating confidence intervals using t-test
@@ -206,4 +209,4 @@ def mann_kendall(data):
     
 
 if(__name__ == "__main__"):
-    print "Import module and run"
+    print("Import module and run")
