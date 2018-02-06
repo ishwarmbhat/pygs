@@ -65,7 +65,8 @@ def plot_contour_map(contour_data, lats, lons,
                      gridlon = [0,360],                
                      center_lon = 0, 
                      drawls = False, cmap = "testcmap", ax = None, extend = 'both',
-                     conf = None, ms = 0.1, rs = 3, scatter = True, coastwidth = 1.):
+                     conf = None, ms = 0.1, rs = 3, scatter = True, coastwidth = 1., 
+                     alpha = 0.90):
     
     
     """Plot a contour map on a basemap imported from mpl_toolkits
@@ -90,7 +91,8 @@ def plot_contour_map(contour_data, lats, lons,
     ax [Optional] - which axis to draw upon
     conf [Optional] - Draw a scatter plot of 1s and 0s signifiying confidence 
     levels
-    coastwidth [Optional]. Width of coastlines"""   
+    coastwidth [Optional]. Width of coastlines
+    alpha: [Optional]: For hatching, levels are considered between 0 and alpha and alpha and above"""
  
     if (len(lat_lim) != 2) or (len(lon_lim)!=2):
         raise ValueError("Only 2 values expected for axis limits")
@@ -182,14 +184,14 @@ def plot_contour_map(contour_data, lats, lons,
     
     # Hatching the plot with significance levels
     if(conf is not None):
-        conf[~ conf.mask] = ms
         if(scatter):
+            conf[~ conf.mask] = ms
             m.scatter(x[::rs,::rs],y[::rs,::rs],conf[::rs,::rs], 
                       marker = '.', color = 'k', edgecolor = None, lw = 0)
         else:
-            m.contourf(x, y, conf, n_levels = 2, 
-                       hatches = [None, '\\\+///'], colors= 'none', extend = 'lower',
-                       linecolor = 'grey')
+            m.contourf(x, y, conf, levels = [0., alpha, 100.],
+                       hatches = [None, '\\\+///'], extend = 'lower', colors = ['none'])
+                       # linecolor = 'grey')
             
     return m,cs
     
