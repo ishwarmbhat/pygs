@@ -129,7 +129,7 @@ def plot_contour_map(contour_data, lats, lons,
         
         # If central longitude is not zero or the central value of the longitude array, the longitude grid 
         # also has to be shifted to accomodate for the new grid structure        
-        if(lons[nlon/2] != center_lon): # which means we need to ensure central longitude is set to lat_0
+        if(lons[int(nlon/2)] != center_lon): # which means we need to ensure central longitude is set to lat_0
             lon_start = center_lon - 180
             contour_data, lons = shiftgrid(lon_start,contour_data, lons)
             
