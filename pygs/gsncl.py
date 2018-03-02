@@ -6,11 +6,12 @@
 # ========================================================================
 # ========================================================================
 
-"""NCL like functions for quick netCDF like data manipulation"""
+"""NCL like functions for quick netCDF data manipulation and computation"""
 
 import numpy as np
 from datetime import datetime, timedelta
 import warnings
+import __vibeta__ as vb
 
 # ======================== NCL Helper Clones =================================
 def cd_calendar(time_array, time_start, option):
@@ -374,6 +375,89 @@ def subset_latlon(data, lat, lon, lat_lim, lon_lim):
     lon_sub = lon[lon_filt]
     
     return data_sub, lat_sub, lon_sub
+
+
+def vibeta(x, plev, ps, axis, pbot = 1000, ptop = 100):
+    """Vertical integral using ket/as described in Diagnostic studies using global analyses. 
+    This function is a clone of the vibeta function in NCL
+    Inputs:
+        x - A multidimensional array of values recorded at different pressure levels
+        plev - A single dimensional array of Pressure levels. If multidimensional, 
+        it must be of the same size as x
+        ps - A multidimensional array of the same size of x except the pressure level dimension or a scalar value
+        axis - Axis which represents the pressure levels
+        pbot - The bottom level of integration
+        ptop - The upper level of integration
+    Returns:
+        Vertically integrated data with missing values wherever 
+        there are less than 3 pressure levels or memory allocation error occurred in FORTRAN
+    """
+
+    # Shapes of each dataset
+    x_ndim = len(x.shape)
+    ps_ndim = len(ps.shape)
+    p_ndim = len(plev.shape)
+    
+    x = np.rollaxis(x,axis,x_ndim)
+    
+    # flatten the arrays for easier looping
+    nlev = x.shape[-1]
+    x_re = x.reshape([-1,nlev])
+
+    # For non-scalar PS
+    if(not(np.isscalar(ps))):
+        if(((x_ndim - ps_ndim) != 1) and (np.any(x.shape[:-1] != ps.shape))):
+            raise ValueError("vibeta: If PS is not a scalar, its dimensions must be the one less that the integrand and must have the same dimesion size except the last dimension")
+        else:
+            ps_re = ps.reshape(-1)
+    else:
+        ps_re = np.empty(x_re.shape[:-1])
+        ps_re[:] = ps
+        
+    if(np.isscalar(plev)):
+        raise ValueError("vibeta: plev cannot be single value")
+    if((p_ndim == 1) and (len(plev) != x.shape[-1])):
+        raise ValueError("vibeta: If plev is one dimensional, it needs to be the same size as the last dimension of x")
+    else:
+        plev_re = np.empty_like(x_re)
+        plev_re[:] = plev
+    if(p_ndim > 1):
+        if((p_ndim != x_ndim) or (np.any(plev.shape != x.shape))):
+            raise ValueError("vibeta: If plev is multidimensional, it needs to be the same dimensions as x")    
+        else:
+            plev_re = plev.reshape(-1, nlev)
+    
+    # Missing value required for fortran routine
+    if(isinstance(x_re, np.ma.masked_array)):
+        xmsg = x_re.fill_value
+        msk = x[0].mask
+    else:
+        xmsg = 99999
+    
+    # Run the vertical integration FORTRAN routine for every TLL
+    x_vint = np.empty_like(ps_re)
+    for i in range(x_re.shape[0]):
+        vint = 0
+        ier = 0
+        vint, ier = vb.dvibeta(p=plev, x = x_re[i], 
+                               xmsg = xmsg, linlog = 1, 
+                               psfc = ps_re[i], xsfc = x_re[i,0],
+                               pbot = pbot, ptop = ptop, 
+                               plvcrt = plev[-1], 
+                               vint = vint, ier = ier)
+        if(ier == -999):
+            print("There must be atleast three levels above Surface")
+        x_vint[i] = vint
+    
+    # Get it back to the same shape as input but without level dimension and mask if required
+    x_vint = x_vint.reshape(x.shape[:-1])
+    if(np.sum(x_vint == xmsg) > 0):
+        if(isinstance(x, np.ma.masked_array)):
+            x_vint = np.ma.masked_array(x_vint, mask = np.logical_and((x_vint == xmsg), msk))
+        else:
+            x_vint = np.ma.masked_array(x_vint, mask = (x_vint == xmsg))
+            
+    return(x_vint)
 
 if(__name__ == "__main__"):
     print("Import Module and run!")
